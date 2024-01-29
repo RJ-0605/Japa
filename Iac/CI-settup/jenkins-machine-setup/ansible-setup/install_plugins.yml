@@ -1,0 +1,14 @@
+---
+- name: Install Jenkins Plugins
+  hosts: jenkins_servers
+  become: yes
+
+  tasks:
+    - name: Install Jenkins Plugins
+      jenkins_plugin:
+        name: "{{ item }}"
+        state: latest
+      loop:
+        - greenballs
+        - other_plugin1
+        - other_plugin2

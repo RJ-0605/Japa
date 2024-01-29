@@ -1,0 +1,12 @@
+
+
+                Folder Hierarchy
+
+jenkins_ansible/
+│
+├── inventory.ini
+├── setup_server.yml
+├── install_java.yml
+├── install_jenkins.yml
+├── install_plugins.yml
+└── install-ansible-script.sh

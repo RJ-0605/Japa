@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-ingress-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: http://jenkins_cicd_argo:glpat-2QbHKetFz4WbUC_Jqd7y@kwao75.port0.org/argocd/final-project-infra-library-flask-app-charts-repo.git
+    targetRevision: HEAD
+    path: nginx-ingress-controller
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true
