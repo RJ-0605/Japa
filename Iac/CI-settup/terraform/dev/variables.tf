@@ -78,7 +78,7 @@ variable "rod_aws_instances"{
     default = [
       {
           ami    = "ami-0283a57753b18025b"
-          instance_type = "t2.xlarge"
+          instance_type = "t2.medium"
           availability_zone = "us-east-2"
           Name = "rodney-real-hashi-dev-instance-1"
           owner = "rodney-real-hashi-dev-instance-1"
@@ -88,7 +88,7 @@ variable "rod_aws_instances"{
       {
           ami    = "ami-0283a57753b18025b"
           availability_zone = "us-east-2"
-          instance_type = "t2.xlarge"
+          instance_type = "t2.medium"
           Name = "rodney-real-hashi-dev-instance-2"
           owner = "rodney-real-hashi-dev-instance-2"
           resource_location_tag = "ghana1"

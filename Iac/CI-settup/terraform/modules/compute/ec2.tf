@@ -21,24 +21,24 @@ resource "aws_instance" "rodney-real-hashi-instances" {
   }
 }
 
-
-# Create an EBS volume
-resource "aws_ebs_volume" "example_volume" {
-#  availability_zone = aws_instance.example_instance.availability_zone
-  availability_zone = "us-east-2a"
-  size              = 50  # Size of the volume in gigabytes
-  type              = "gp2"  # Volume type (e.g., gp2, io1)
-
-}
-
-# Attach the EBS volume to the EC2 instance
-resource "aws_volume_attachment" "example_attachment" {
-  device_name          = "/dev/sdf"  # Device name on the EC2 instance
-#  instance_id          = aws_instance.example_instance.id
-  instance_id          = "${aws_instance.rodney-real-hashi-instances[0].id}"
-  volume_id            = aws_ebs_volume.example_volume.id
-
-}
+#
+## Create an EBS volume
+#resource "aws_ebs_volume" "example_volume" {
+##  availability_zone = aws_instance.example_instance.availability_zone
+#  availability_zone = "us-east-2a"
+#  size              = 50  # Size of the volume in gigabytes
+#  type              = "gp2"  # Volume type (e.g., gp2, io1)
+#
+#}
+#
+## Attach the EBS volume to the EC2 instance
+#resource "aws_volume_attachment" "example_attachment" {
+#  device_name          = "/dev/sdf"  # Device name on the EC2 instance
+##  instance_id          = aws_instance.example_instance.id
+#  instance_id          = "${aws_instance.rodney-real-hashi-instances[0].id}"
+#  volume_id            = aws_ebs_volume.example_volume.id
+#
+#}
 
 
 

@@ -1,0 +1,8 @@
+---
+- name: Install SonarQube
+  hosts: your_sonarqube_server
+  become: yes
+
+  tasks:
+    - name: Create Docker network
+      command: docker network create sonarqube-network
