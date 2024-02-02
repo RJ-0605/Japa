@@ -1,0 +1,13 @@
+---
+
+essential_packages:
+  - openjdk-17-jdk
+  - unzip
+  - build-essential
+  - python3-pip
+
+main_postgresql_packages:
+  - postgresql
+  - postgresql-contrib
+
+postgres_new_password: "St0n@r@dmin"

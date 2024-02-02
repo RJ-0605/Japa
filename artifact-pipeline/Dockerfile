@@ -8,4 +8,4 @@ RUN npm install
 
 RUN chmod 755 /app/entry-point.sh
 
-ENTRYPOINT [ "
+ENTRYPOINT [ "/entry-point.sh" ]

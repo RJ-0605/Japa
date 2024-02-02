@@ -4,21 +4,35 @@
   become: yes
 
   tasks:
-    - name: Add Jenkins repository and key
-      apt_repository:
-        repo: deb http://pkg.jenkins.io/debian binary/
-        state: present
-      apt_key:
-        url: https://pkg.jenkins.io/debian/jenkins.io.key
-        state: present
+    - name: Download Jenkins key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
 
-    - name: Install Jenkins
-      apt:
-        name: jenkins
-        state: present
 
-    - name: Start Jenkins service
-      service:
+    - name: Setting up debian-stable apt repository for Jenkins
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/
+        state: present
+        filename: jenkins.list
+
+    - name: Install Essential Packages
+      ansible.builtin.apt:
         name: jenkins
+        state: latest
+
+    - name: Start Services
+      ansible.builtin.systemd_service:
         state: started
-        enabled: yes
+        enabled: true
+        name: "{{ item }}"
+      with_items:
+        - jenkins.service
+
+    # - name: Check the Jenkins Initial Token
+    #   ansible.builtin.shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+    #   register: jenkins_init_token
+
+    - name: Printing the Jenkins Initial Admin Token
+      ansible.builtin.debug:
+        var: jenkins_init_token

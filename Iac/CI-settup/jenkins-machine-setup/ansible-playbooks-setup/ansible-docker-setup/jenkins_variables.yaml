@@ -1,0 +1,16 @@
+---
+essential_packages:
+  - openjdk-17-jdk
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - software-properties-common
+  - awscli
+
+main_packages:
+  - docker-ce
+  - maven
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin

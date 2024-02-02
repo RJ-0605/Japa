@@ -1,0 +1,193 @@
+---
+- name: Setup Sonarqube On Sonarqube CI Server
+  hosts: jenkins_servers
+  become_method: sudo
+  become: true
+  vars_files:
+    - "sonar_q_variables.yml"
+  gather_facts: true
+
+  tasks:
+    - name: Update apt Cache
+      apt:
+        update_cache: true
+        force_apt_get: true
+
+    - name: Ensure passlib is installed
+      pip:
+        name: passlib
+        state: present
+        executable: pip3
+
+    - name: Print current user
+      debug:
+        var: ansible_user_id
+
+    - name: Set vm.max_map_count using sysctl
+      ansible.posix.sysctl:
+        name: vm.max_map_count
+        value: 524288
+        state: present
+
+    - name: Set fs.file-max using sysctl
+      ansible.posix.sysctl:
+        name: fs.file-max
+        value: 131072
+        state: present
+
+    - name: Set limits in /etc/security/limits.conf
+      blockinfile:
+        path: /etc/security/limits.conf
+        block: |
+          sonarqube   -   nofile   65536
+          sonarqube   -   nproc    4096
+
+    - name: Update apt Cache
+      apt:
+        update_cache: true
+        force_apt_get: true
+
+    - name: Install Essential Packages
+      ansible.builtin.apt:
+        name: "{{ essential_packages }}"
+        state: latest
+
+    - name: Install psycopg2 python package
+      ansible.builtin.pip:
+        name: psycopg2-binary
+        executable: pip3
+
+#    - name: Run update-alternatives command
+#      ansible.builtin.shell: update-alternatives --config java
+#
+#    - name: Check Java version
+#      ansible.builtin.shell: java -version
+#      register: java_version
+#
+#    - name: Printing Installed Java version
+#      ansible.builtin.debug:
+#        var: java_version
+
+    - name: Add PostgreSQL repository key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
+        state: present
+
+    - name: Install PostgreSQL and contrib packages
+      apt:
+        name: "{{ main_postgresql_packages }}"
+        state: latest
+
+    - name: Enable and start PostgreSQL service
+      systemd:
+        name: postgresql
+        enabled: yes
+        state: started
+
+#    - name: Change PostgreSQL user password
+#      user:
+#        name: postgres
+#        password: "{{ 'S0n@r@dmin' | password_hash('sha512') }}"
+#        update_password: always
+#      become: true
+
+    - name: Encrypt PostgreSQL user password using passlib
+      command: "python3 -c 'from passlib.hash import sha512_crypt; print(sha512_crypt.using(salt_size=16).hash(\"{{ postgres_new_password }}\"))'"
+      register: encrypted_password
+
+    - name: Change PostgreSQL user password
+      user:
+        name: postgres
+        password: "{{ encrypted_password.stdout_lines[0] }}"
+        update_password: always
+      become: true
+
+    - name: Create PostgreSQL user for SonarQube
+      ansible.builtin.shell: |
+        su - postgres -c "createuser sonar"
+        sudo -i -u postgres psql -c "ALTER USER sonar WITH ENCRYPTED PASSWORD 'St0n@r@dmin';"
+        sudo -i -u postgres psql -c "CREATE DATABASE sonarqube OWNER sonar;"
+        sudo -i -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sonarqube to sonar;"
+
+    # - name: Create Sonarqube Database
+    #   postgresql_db:
+    #     name: sonarqube
+    #     # owner: sonar
+    #     state: present
+
+    # - name: Create Sonar User & Ensure user has access to the new database
+    #   become_user: postgres
+    #   postgresql_user:
+    #     db: sonarqube
+    #     name: sonar
+    #     password: "{{ 'S0n@r@dmin' | password_hash('sha512') }}"
+    #     priv: ALL
+    #     state: present
+
+    - name: Restart PostgreSQL service
+      systemd:
+        name: postgresql
+        enabled: yes
+        state: restarted
+
+    - name: Create directory for SonarQube
+      file:
+        path: /sonarqube
+        state: directory
+
+    - name: Download SonarQube ZIP file
+      get_url:
+        url: https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.9.0.65466.zip
+        dest: /sonarqube/sonarqube-9.9.0.65466.zip
+
+    - name: Unzip SonarQube to /opt/
+      unarchive:
+        src: /sonarqube/sonarqube-9.9.0.65466.zip
+        dest: /opt/
+        remote_src: yes
+
+    - name: Rename SonarQube directory
+      ansible.builtin.shell: mv /opt/sonarqube-9.9.0.65466/ /opt/sonarqube
+
+    - name: BackUp SonarQube sonar.properties file
+      ansible.builtin.shell: mv /opt/sonarqube/conf/sonar.properties /opt/sonarqube/conf/sonar.properties.bkp
+
+    - name: Create or update sonar.properties file
+      ansible.builtin.template:
+        src: ./templates/sonar.properties.j2
+        dest: /opt/sonarqube/conf/sonar.properties
+        mode: '0644'
+
+    - name: Create Sonar Group And Make Sonar User owner Of Sonarqube Directory
+      ansible.builtin.shell: |
+        sudo groupadd sonar
+        sudo useradd -c "SonarQube - User" -d /opt/sonarqube/ -g sonar sonar
+        sudo chown sonar:sonar /opt/sonarqube/ -R
+
+    - name: Create or update sonarqube service
+      ansible.builtin.template:
+        src: ./templates/sonarqube.service.j2
+        dest: /etc/systemd/system/sonarqube.service
+        mode: '0644'
+      notify:
+        - Reload sysctl
+
+    # - name: Reload Systemd Daemon
+    #   systemd:
+    #     daemon_reload: yes
+
+    - name: Start Sonarqube Service
+      ansible.builtin.systemd_service:
+        state: started
+        enabled: true
+        name: sonarqube.service
+
+
+  handlers:
+    - name: Reload sysctl
+      command: sysctl --system
