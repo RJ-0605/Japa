@@ -1,0 +1,145 @@
+// feature branch
+
+pipeline {
+    agent any
+
+    environment {
+            BRANCH_NAME = null
+            RELEASE_CHECK_SUCCESS = null
+
+            SCANNER_HOME = tool 'Sonar-scanner'
+            // SONARQUBE_SCANNER_VERSION = '4.6.2.2472' // Update with the latest version
+            SONARQUBE_HOST = 'http://localhost:5000' // Update with your SonarQube server URL
+            SONARQUBE_PROJECT_KEY = 'demo-nodejs'
+
+            NODE_VERSION = '14'
+            APP_NAME = 'castV'
+            DOCKER_REGISTRY = 'your-docker-registry'
+            DOCKER_IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}"
+            DOCKER_IMAGE_TAG = "${DOCKER_IMAGE_NAME}:${semverMajorMinor()}-${env.BUILD_NUMBER}"
+        
+            }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout your Node.js project from version control
+                checkout scm
+            }
+        }
+        stage('Conditional Stage  ') {
+             when {
+                expression { return env.BRANCH_NAME =~ /^release\/\d+$/ || env.COMMIT_MESSAGE =~ /release/ }
+            }
+            steps {
+                script {
+                    echo 'Setting BRANCH_NAME to Release'
+                    BRANCH_NAME = 'release'
+                }
+            }
+        }
+        stage('Install Dependencies') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                // Install Node.js dependencies
+                sh 'npm install'
+            }
+        }
+        stage('Build Docker Image') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                script {
+                    sh "docker build -t ${DOCKER_IMAGE_TAG} --build-arg NODE_VERSION=${NODE_VERSION} ."
+                }
+            }
+        }
+        stage('Docker Hub Scan') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                script {
+                    sh "docker scan --login -r ${DOCKER_REGISTRY} --username ${DOCKER_USERNAME} --password ${DOCKER_PASSWORD} ${DOCKER_IMAGE_TAG}"
+                }
+            }
+        }
+        stage('Run Tests') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                script {
+                    // Add your test commands here
+                }
+            }
+        }
+        stage('Tag Release') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                script {
+                    def semver = semverMajorMinor()
+                    sh "git tag -a v${semver} -m 'Release ${semver}'"
+                }
+            }
+        }
+        stage('Push Tags to Git') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                script {
+                    sh 'git push --tags'
+                }
+            }
+        }
+        stage('Docker Push') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                script {
+                    sh "docker push ${DOCKER_IMAGE_TAG}"
+                }
+            }
+        }
+        stage('Create a Release and merge with production branch') {
+            when {
+                expression { return BRANCH_NAME == 'release' }
+            }
+            steps {
+                // Your build steps go here
+                echo 'creating and commit Release branch '
+            }
+        }
+        
+    }
+    post {
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+        always {
+
+            // Cleanup or post-build actions go here
+            // Stop your application after tests
+            sh 'pkill -f "node your-app.js"'
+            echo 'Pipeline completed!'
+
+        }
+    }
+}
+
+def semverMajorMinor() {
+    def versionFile = readFile('version.txt').trim()
+    def parts = versionFile.split('\\.')
+    def majorMinor = "${parts[0]}.${parts[1]}"
+    return majorMinor
+}
