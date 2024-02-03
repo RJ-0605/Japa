@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+            SCANNER_HOME = tool 'Sonar-scanner'
+            }
+
+    stages {
+        stage('Build') {
+            steps {
+                // Your build steps go here
+                echo 'Building the project...'
+            }
+        }
+
+        stage('Unit Test') {
+            steps {
+                // Your test steps go here
+                echo 'Running tests...'
+            }
+        }
+        stage('SonarQube analysis') {
+            
+            steps {
+                    withSonarQubeEnv(credentialsId: 'sonar-cred-token-id', installationName: 'Sonar') {
+                                sh '''$SCANNER_HOME/bin/sonar-scanner \
+                                -Dsonar.projectKey=demo-nodejs \
+                                -Dsonar.projectName=castVProject \
+                                -Dsonar.sources=.  \
+                                -Dsonar.host.url=http://localhost:5000 \
+                                -Dsonar.inclusions=app.js \
+                                -Dsonar.projectVersion=${BUILD_NUMBER}-${GIT_COMMIT_SHORT}'''
+                            }
+                }
+        }
+
+    }
+
+    post {
+        always {
+            // Cleanup or post-build actions go here
+            echo 'Pipeline completed!'
+        }
+    }
+}
