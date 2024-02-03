@@ -5,6 +5,9 @@ pipeline {
 
     environment {
             SCANNER_HOME = tool 'Sonar-scanner'
+            // SONARQUBE_SCANNER_VERSION = '4.6.2.2472' // Update with the latest version
+            SONARQUBE_HOST = 'http://localhost:9000' // Update with your SonarQube server URL
+            SONARQUBE_PROJECT_KEY = 'your-node-app'
             }
 
     stages {

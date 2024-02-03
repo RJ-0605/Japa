@@ -1,0 +1,61 @@
+// feature branch
+
+pipeline {
+    agent any
+
+    environment {
+            SCANNER_HOME = tool 'Sonar-scanner'
+            // SONARQUBE_SCANNER_VERSION = '4.6.2.2472' // Update with the latest version
+            SONARQUBE_HOST = 'http://your-sonarqube-host:9000' // Update with your SonarQube server URL
+            SONARQUBE_PROJECT_KEY = 'your-node-app'
+            }
+
+    stages {
+        stage('Run Unit Tests') {
+            steps {
+                script {
+                    // Run Node.js unit tests
+                    sh "npm install"
+                    sh "npm test"
+                    // Publish JUnit test results
+                    junit '**/test-results.xml'
+                }
+            }
+        }
+        stage('Run Integration Test ') {
+            steps {
+                // Start your application (assuming it's running on localhost:3000)
+                sh 'npm start &'
+
+                // Run Puppeteer-based E2E tests
+                sh 'npm run test:integrated'
+            }
+        }
+        stage('Run E2E Tests') {
+            steps {
+                // Start your application (assuming it's running on localhost:3000)
+                sh 'npm start &'
+
+                // Run Puppeteer-based E2E tests
+                sh 'npm run test:e2e'
+            }
+        }
+        stage('Create a Release x branch for testing x') {
+            steps {
+                // Your build steps go here
+                echo 'Building the project...'
+            }
+        }
+        
+    }
+    post {
+        always {
+
+            // Cleanup or post-build actions go here
+            // Stop your application after tests
+            sh 'pkill -f "node your-app.js"'
+            echo 'Pipeline completed!'
+
+        }
+    }
+}
