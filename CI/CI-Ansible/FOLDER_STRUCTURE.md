@@ -1,0 +1,28 @@
+# Folder Structure
+
+- README.md
+- group_vars
+  - all.yaml
+- inventories
+  - production.ini
+- playbooks
+  - docker.yml
+  - jenkins.yml
+  - site.yml
+  - sonarqube.yml
+- roles
+  - docker_setup
+    - tasks
+      - main.yml
+    - vars
+      - main.yml
+  - jenkins_setup
+    - tasks
+      - main.yml
+    - vars
+      - main.yml
+  - sonarqube_setup
+    - tasks
+      - main.yml
+    - vars
+      - main.yml

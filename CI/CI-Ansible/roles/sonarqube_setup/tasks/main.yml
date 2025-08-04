@@ -1,0 +1,4 @@
+- name: Setup SonarQube Docker Network
+  docker_network:
+    name: sonarqube_net
+    state: present
